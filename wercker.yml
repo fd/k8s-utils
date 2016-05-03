@@ -1,0 +1,40 @@
+box: simonmenke/go-build:latest
+
+build:
+  steps:
+  - setup-go-workspace
+
+  - script:
+      name: "go install"
+      code: |
+        CGO_ENABLED=0 go install -v ./cmd/...
+
+  - script:
+      name: "go test"
+      code: |
+        go test -v ./cmd/... ./internal/...
+
+  - script:
+      name: "go build"
+      code: |
+        mkdir -p ${WERCKER_OUTPUT_DIR}/dist
+        CGO_ENABLED=0 GOOS=linux  GOARCH=amd64 go build -o ${WERCKER_OUTPUT_DIR}/bin/k8s-linux-amd64/k8s  ./cmd/k8s
+        CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o ${WERCKER_OUTPUT_DIR}/bin/k8s-darwin-amd64/k8s ./cmd/k8s
+        tar -C ${WERCKER_OUTPUT_DIR}/bin/k8s-linux-amd64  -f ${WERCKER_OUTPUT_DIR}/dist/k8s-linux-amd64.tar.gz  -cz .
+        tar -C ${WERCKER_OUTPUT_DIR}/bin/k8s-darwin-amd64 -f ${WERCKER_OUTPUT_DIR}/dist/k8s-darwin-amd64.tar.gz -cz .
+
+deploy:
+  steps:
+  - script:
+      name: "Push release"
+      code: |
+        TAG="$(echo "$WERCKER_GIT_COMMIT" | cut -c 1-7)"
+        if [[ "$WERCKER_DEPLOYTARGET_NAME" == "prerelease" ]]; then
+          ghr -u fd -r k8s-utils -c $WERCKER_GIT_COMMIT --replace --prerelease "v1.0.0-pre+c.${TAG}" ./dist
+        else
+          ghr -u fd -r k8s-utils -c $WERCKER_GIT_COMMIT --replace "v1.0.0+c.${TAG}" ./dist
+        fi
+  - mbrevda/wercker-triggerbuild@0.0.10:
+      token: $WRK_TOKEN
+      application_id: $WRK_APP
+      message: Triggered from k8s

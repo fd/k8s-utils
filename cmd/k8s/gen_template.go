@@ -11,15 +11,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-func main() {
-	var (
-		sourceFileName string
-	)
-
-	app := kingpin.New("k8s-gen-template", "Generate content from a template")
-	app.Arg("template", "Template file").Default(".").ExistingFileVar(&sourceFileName)
-	kingpin.MustParse(app.Parse(os.Args[1:]))
-
+func genTemplate(app *kingpin.Application, sourceFileName string) {
 	sourceFileName, err := filepath.Abs(sourceFileName)
 	if err != nil {
 		app.FatalIfError(err, "%v", err)

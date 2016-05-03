@@ -14,17 +14,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-func main() {
-	var (
-		configDir     string
-		configMapName string
-	)
-
-	app := kingpin.New("k8s-gen-configmap", "Generate a ConfigMap from a directory")
-	app.Arg("config-directory", "Directory containing configuration").Default(".").ExistingDirVar(&configDir)
-	app.Flag("name", "name of the ConfigMap").StringVar(&configMapName)
-	kingpin.MustParse(app.Parse(os.Args[1:]))
-
+func genConfigMap(app *kingpin.Application, configDir, configMapName string) {
 	configDir, err := filepath.Abs(configDir)
 	if err != nil {
 		app.FatalIfError(err, "%v", err)

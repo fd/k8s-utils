@@ -14,17 +14,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-func main() {
-	var (
-		secretDir     string
-		secretMapName string
-	)
-
-	app := kingpin.New("k8s-gen-secretmap", "Generate a SecretMap from a directory")
-	app.Arg("secret-directory", "Directory containing secrets").Default(".").ExistingDirVar(&secretDir)
-	app.Flag("name", "name of the Secret").StringVar(&secretMapName)
-	kingpin.MustParse(app.Parse(os.Args[1:]))
-
+func genSecretMap(app *kingpin.Application, secretDir, secretMapName string) {
 	secretDir, err := filepath.Abs(secretDir)
 	if err != nil {
 		app.FatalIfError(err, "%v", err)
