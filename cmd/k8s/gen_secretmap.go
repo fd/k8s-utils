@@ -43,8 +43,8 @@ func genSecretMap(app *kingpin.Application, secretDir, secretMapName string) {
 		if name == ".DS_Store" {
 			continue
 		}
-		if len(name) > 253 || !nameRE.MatchString(name) {
-			app.Fatalf("%q must have at most 253 characters and match regex %s", name, nameRE.String())
+		if len(name) > 253 || !nameSecretMapRE.MatchString(name) {
+			app.Fatalf("%q must have at most 253 characters and match regex %s", name, nameSecretMapRE.String())
 		}
 
 		data, err := ioutil.ReadFile(path)
@@ -57,13 +57,13 @@ func genSecretMap(app *kingpin.Application, secretDir, secretMapName string) {
 			app.FatalIfError(err, "%v", err)
 		}
 
-		secretMap.Files = append(secretMap.Files, File{
+		secretMap.Files = append(secretMap.Files, SecretMapFile{
 			Name:  name,
 			Value: string(data),
 		})
 	}
 
-	err = secretMap.WriteTo(os.Stdout)
+	err = secretMap.writeTo(os.Stdout)
 	if err != nil {
 		app.FatalIfError(err, "%v", err)
 	}
@@ -71,19 +71,19 @@ func genSecretMap(app *kingpin.Application, secretDir, secretMapName string) {
 
 type SecretMap struct {
 	Name  string
-	Files []File
+	Files []SecretMapFile
 }
 
-type File struct {
+type SecretMapFile struct {
 	Name  string
 	Value string
 }
 
-func (c *SecretMap) WriteTo(w io.Writer) error {
-	return tmpl.Execute(w, c)
+func (c *SecretMap) writeTo(w io.Writer) error {
+	return secretMapTmpl.Execute(w, c)
 }
 
-var nameRE = regexp.MustCompile(`^\.?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
+var nameSecretMapRE = regexp.MustCompile(`^\.?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
 
 // kind: SecretMap
 // apiVersion: v1
@@ -96,7 +96,7 @@ var nameRE = regexp.MustCompile(`^\.?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-
 //     property.1=value-1
 //     property.2=value-2
 //     property.3=value-3
-var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
+var secretMapTmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"b64": b64,
 }).Parse(`kind: Secret
 apiVersion: v1

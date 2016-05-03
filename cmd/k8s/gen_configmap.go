@@ -43,8 +43,8 @@ func genConfigMap(app *kingpin.Application, configDir, configMapName string) {
 		if name == ".DS_Store" {
 			continue
 		}
-		if len(name) > 253 || !nameRE.MatchString(name) {
-			app.Fatalf("%q must have at most 253 characters and match regex %s", name, nameRE.String())
+		if len(name) > 253 || !nameConfigMapRE.MatchString(name) {
+			app.Fatalf("%q must have at most 253 characters and match regex %s", name, nameConfigMapRE.String())
 		}
 
 		data, err := ioutil.ReadFile(path)
@@ -57,13 +57,13 @@ func genConfigMap(app *kingpin.Application, configDir, configMapName string) {
 			app.FatalIfError(err, "%v", err)
 		}
 
-		configMap.Files = append(configMap.Files, File{
+		configMap.Files = append(configMap.Files, ConfigMapFile{
 			Name:  name,
 			Value: string(data),
 		})
 	}
 
-	err = configMap.WriteTo(os.Stdout)
+	err = configMap.writeTo(os.Stdout)
 	if err != nil {
 		app.FatalIfError(err, "%v", err)
 	}
@@ -71,19 +71,19 @@ func genConfigMap(app *kingpin.Application, configDir, configMapName string) {
 
 type ConfigMap struct {
 	Name  string
-	Files []File
+	Files []ConfigMapFile
 }
 
-type File struct {
+type ConfigMapFile struct {
 	Name  string
 	Value string
 }
 
-func (c *ConfigMap) WriteTo(w io.Writer) error {
-	return tmpl.Execute(w, c)
+func (c *ConfigMap) writeTo(w io.Writer) error {
+	return configMapTmpl.Execute(w, c)
 }
 
-var nameRE = regexp.MustCompile(`^\.?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
+var nameConfigMapRE = regexp.MustCompile(`^\.?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
 
 // kind: ConfigMap
 // apiVersion: v1
@@ -96,7 +96,7 @@ var nameRE = regexp.MustCompile(`^\.?[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-
 //     property.1=value-1
 //     property.2=value-2
 //     property.3=value-3
-var tmpl = template.Must(template.New("").Funcs(template.FuncMap{
+var configMapTmpl = template.Must(template.New("").Funcs(template.FuncMap{
 	"indent": indent,
 }).Parse(`kind: ConfigMap
 apiVersion: v1
