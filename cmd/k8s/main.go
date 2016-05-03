@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"limbo.services/version"
+
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -15,7 +17,7 @@ func main() {
 		sourceFileName string
 	)
 
-	app := kingpin.New("k8s", "kubernetes utilities")
+	app := kingpin.New("k8s", "kubernetes utilities").Version(version.Get().String()).Author(version.Get().ReleasedBy)
 
 	genConfigMapCmd := app.Command("gen-configmap", "Generate a ConfigMap from a directory")
 	genConfigMapCmd.Arg("config-directory", "Directory containing configuration").Default(".").ExistingDirVar(&configDir)
