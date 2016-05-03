@@ -17,22 +17,30 @@ build:
   - script:
       name: "go build"
       code: |
-        mkdir -p ${WERCKER_OUTPUT_DIR}/dist
         CGO_ENABLED=0 GOOS=linux  GOARCH=amd64 go build -o ${WERCKER_OUTPUT_DIR}/bin/k8s-linux-amd64/k8s  ./cmd/k8s
         CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -o ${WERCKER_OUTPUT_DIR}/bin/k8s-darwin-amd64/k8s ./cmd/k8s
-        tar -C ${WERCKER_OUTPUT_DIR}/bin/k8s-linux-amd64  -f ${WERCKER_OUTPUT_DIR}/dist/k8s-linux-amd64.tar.gz  -cz .
-        tar -C ${WERCKER_OUTPUT_DIR}/bin/k8s-darwin-amd64 -f ${WERCKER_OUTPUT_DIR}/dist/k8s-darwin-amd64.tar.gz -cz .
 
 deploy:
   steps:
   - script:
       name: "Push release"
       code: |
-        TAG="$(echo "$WERCKER_GIT_COMMIT" | cut -c 1-7)"
+        install-creds
+        mkdir -p dist
         if [[ "$WERCKER_DEPLOYTARGET_NAME" == "prerelease" ]]; then
-          ghr -u fd -r k8s-utils -c $WERCKER_GIT_COMMIT --replace --prerelease "v1.0.0-pre+c.${TAG}" ./dist
+          VERSION="$(v5n store bump k8s rc)"
+          v5n apply --commit $WERCKER_GIT_COMMIT --author "Simon Menke" bin/k8s-linux-amd64/k8s  "$VERSION"
+          v5n apply --commit $WERCKER_GIT_COMMIT --author "Simon Menke" bin/k8s-darwin-amd64/k8s "$VERSION"
+          tar -C bin/k8s-linux-amd64  -f dist/k8s-linux-amd64.tar.gz  -cz .
+          tar -C bin/k8s-darwin-amd64 -f dist/k8s-darwin-amd64.tar.gz -cz .
+          ghr -u fd -r k8s-utils -c $WERCKER_GIT_COMMIT --replace --prerelease "v$VERSION" ./dist
         else
-          ghr -u fd -r k8s-utils -c $WERCKER_GIT_COMMIT --replace "v1.0.0+c.${TAG}" ./dist
+          VERSION="$(v5n store bump k8s final+patch)"
+          v5n apply --commit $WERCKER_GIT_COMMIT --author "Simon Menke" bin/k8s-linux-amd64/k8s  "$VERSION"
+          v5n apply --commit $WERCKER_GIT_COMMIT --author "Simon Menke" bin/k8s-darwin-amd64/k8s "$VERSION"
+          tar -C bin/k8s-linux-amd64  -f dist/k8s-linux-amd64.tar.gz  -cz .
+          tar -C bin/k8s-darwin-amd64 -f dist/k8s-darwin-amd64.tar.gz -cz .
+          ghr -u fd -r k8s-utils -c $WERCKER_GIT_COMMIT --replace "v$VERSION" ./dist
         fi
   - mbrevda/wercker-triggerbuild@0.0.10:
       token: $WRK_TOKEN
