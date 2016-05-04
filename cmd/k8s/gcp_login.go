@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os"
+	"path"
 	"text/template"
 
 	"golang.org/x/oauth2"
@@ -26,13 +28,11 @@ func gcpLogin(app *kingpin.Application, gcpProjectID, gcpZone, gkeCluster string
 	err = k8sConfigTmpl.Execute(&buf, cluster)
 	app.FatalIfError(err, "k8s")
 
-	buf.WriteTo(os.Stdout)
+	err = os.MkdirAll(path.Join(os.Getenv("HOME"), ".kube"), 0755)
+	app.FatalIfError(err, "k8s")
 
-	// err = os.MkdirAll(path.Join(os.Getenv("HOME"), ".kube"), 0755)
-	// app.FatalIfError(err, "k8s")
-	//
-	// err = ioutil.WriteFile(path.Join(os.Getenv("HOME"), ".kube/config"), buf.Bytes(), 0600)
-	// app.FatalIfError(err, "k8s")
+	err = ioutil.WriteFile(path.Join(os.Getenv("HOME"), ".kube/config"), buf.Bytes(), 0600)
+	app.FatalIfError(err, "k8s")
 }
 
 var k8sConfigTmpl = template.Must(template.New("").Parse(`
