@@ -15,9 +15,25 @@ func main() {
 		secretDir      string
 		secretMapName  string
 		sourceFileName string
+		gcpProjectID   string
+		gkeClusterName string
+		gceZoneName    string
 	)
 
-	app := kingpin.New("k8s", "kubernetes utilities").Version(version.Get().String()).Author(version.Get().ReleasedBy)
+	app := kingpin.New("k8s", "kubernetes utilities").
+		Version(version.Get().String()).
+		Author(version.Get().ReleasedBy)
+
+	gcpLoginCmd := app.Command("gcp-login", "Login to a GKE cluster")
+	gcpLoginCmd.Flag("gcp-project", "GCP project id").Short('p').
+		PlaceHolder("GCP_PROJECT_ID").Envar("GCP_PROJECT_ID").
+		Required().StringVar(&gcpProjectID)
+	gcpLoginCmd.Flag("gce-zone", "GCE zone").Short('z').
+		PlaceHolder("GCE_ZONE").Envar("GCE_ZONE").
+		Required().StringVar(&gceZoneName)
+	gcpLoginCmd.Flag("gke-cluster", "GKE cluster name").Short('c').
+		PlaceHolder("GKE_CLUSTER").Envar("GKE_CLUSTER").
+		Required().StringVar(&gkeClusterName)
 
 	genConfigMapCmd := app.Command("gen-configmap", "Generate a ConfigMap from a directory")
 	genConfigMapCmd.Arg("config-directory", "Directory containing configuration").Default(".").ExistingDirVar(&configDir)
@@ -31,6 +47,8 @@ func main() {
 	genTemplateCmd.Arg("template", "Template file").Default(".").ExistingFileVar(&sourceFileName)
 
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
+	case gcpLoginCmd.FullCommand():
+		gcpLogin(app, gcpProjectID, gceZoneName, gkeClusterName)
 	case genConfigMapCmd.FullCommand():
 		genConfigMap(app, configDir, configMapName)
 	case genSecretMapCmd.FullCommand():
