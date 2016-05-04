@@ -2,9 +2,7 @@ package main
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
-	"path"
 	"text/template"
 
 	"golang.org/x/oauth2"
@@ -28,11 +26,13 @@ func gcpLogin(app *kingpin.Application, gcpProjectID, gcpZone, gkeCluster string
 	err = k8sConfigTmpl.Execute(&buf, cluster)
 	app.FatalIfError(err, "k8s")
 
-	err = os.MkdirAll(path.Join(os.Getenv("HOME"), ".kube"), 0755)
-	app.FatalIfError(err, "k8s")
+	buf.WriteTo(os.Stdout)
 
-	err = ioutil.WriteFile(path.Join(os.Getenv("HOME"), ".kube/config"), buf.Bytes(), 0600)
-	app.FatalIfError(err, "k8s")
+	// err = os.MkdirAll(path.Join(os.Getenv("HOME"), ".kube"), 0755)
+	// app.FatalIfError(err, "k8s")
+	//
+	// err = ioutil.WriteFile(path.Join(os.Getenv("HOME"), ".kube/config"), buf.Bytes(), 0600)
+	// app.FatalIfError(err, "k8s")
 }
 
 var k8sConfigTmpl = template.Must(template.New("").Parse(`
@@ -40,6 +40,7 @@ apiVersion: v1
 kind: Config
 preferences: {}
 current-context: k8s-context
+contexts:
 - context:
     cluster: k8s-cluster
     user:    k8s-user
@@ -49,7 +50,6 @@ clusters:
     certificate-authority-data: {{.MasterAuth.ClusterCaCertificate}}
     server:                     https://{{.Endpoint}}
   name: k8s-cluster
-contexts:
 users:
 - name: k8s-user
   user:
