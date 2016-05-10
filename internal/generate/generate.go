@@ -45,7 +45,7 @@ func Generate(filename string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	return Generate(filename, buf.Bytes())
 }
 
 func extractCommand(data []byte) (string, []byte, []byte) {
